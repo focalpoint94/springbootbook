@@ -1,16 +1,15 @@
 package com.mysite.sbb.question;
 
-import java.util.List;
+import java.util.*;
 import java.time.LocalDateTime;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import java.util.Optional;
 import com.mysite.sbb.DataNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import java.util.ArrayList;
+
 import java.util.List;
 import org.springframework.data.domain.Sort;
 import com.mysite.sbb.user.SiteUser;
@@ -22,11 +21,11 @@ public class QuestionService{
 
     private final QuestionRepository questionRepository;
 
-    public Page<Question> getList(int page) {
+    public Page<Question> getList(int page, String kw) {
         List<Sort.Order> sorts = new ArrayList<>();
         sorts.add(Sort.Order.desc("createDate"));
         Pageable pageable = PageRequest.of(page, 5, Sort.by(sorts));
-        return this.questionRepository.findAll(pageable);
+        return this.questionRepository.findAllByKeyword(kw, pageable);
     }
 
     public Question getQuestion(Integer id) {
@@ -58,9 +57,14 @@ public class QuestionService{
         this.questionRepository.delete(question);
     }
 
-    public void vote(Question question, SiteUser siteUser) {
+    public boolean vote(Question question, SiteUser siteUser) {
+        Set<SiteUser> voter = question.getVoter();
+        if (voter.contains(siteUser)) {
+            return false;
+        }
         question.getVoter().add(siteUser);
         this.questionRepository.save(question);
+        return true;
     }
 
 }

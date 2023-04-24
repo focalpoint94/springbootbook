@@ -15,6 +15,7 @@ import com.mysite.sbb.user.UserService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
@@ -28,8 +29,9 @@ public class QuestionController {
     private final UserService userService;
 
     @GetMapping("/list")
-    public String list(Model model, @RequestParam(value="page", defaultValue = "0") int page) {
-        Page<Question> paging = this.questionService.getList(page);
+    public String list(Model model, @RequestParam(value="page", defaultValue = "0") int page,
+                       @RequestParam(value = "kw", defaultValue = "") String kw) {
+        Page<Question> paging = this.questionService.getList(page, kw);
         model.addAttribute("paging", paging);
         return "question_list";
     }
@@ -99,10 +101,16 @@ public class QuestionController {
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/vote/{id}")
-    public String questionVote(Principal principal, @PathVariable("id") Integer id) {
+    public String questionVote(Principal principal, @PathVariable("id") Integer id,
+                               RedirectAttributes redirectAttributes) {
         Question question = this.questionService.getQuestion(id);
         SiteUser siteUser = this.userService.getUser(principal.getName());
-        this.questionService.vote(question, siteUser);
+        boolean voteFlag = this.questionService.vote(question, siteUser);
+        if (voteFlag == false) {
+            redirectAttributes.addFlashAttribute("error", "이미 투표하였습니다.");
+        } else {
+            redirectAttributes.addFlashAttribute("success", "투표가 완료되었습니다.");
+        }
         return String.format("redirect:/question/detail/%s", id);
     }
 
